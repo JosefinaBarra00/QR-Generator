@@ -11,89 +11,62 @@ import os
 # Configuración de página
 st.set_page_config(page_title="Generador de Etiquetas QR", page_icon="🏷️", layout="wide")
 
-# Definición de colores solo para letras del abecedario (ordenadas alfabéticamente)
+# Definición de colores EXACTA del código base original
+# Del codigo_base.py línea 10: colores = {"Z":(255,255,255),"A":(213,43,30),...}
 COLORES = {
-    "A": (213, 43, 30),  # Rojo
-    "B": (0, 133, 66),  # Verde
-    "C": (0, 101, 189),  # Azul
-    "D": (240, 171, 0),  # Amarillo
-    "E": (117, 48, 119),  # Púrpura
-    "F": (215, 31, 133),  # Rosa
-    "G": (255, 88, 0),  # Naranja
-    "H": (249, 227, 0),  # Amarillo claro
-    "I": (0, 0, 0),  # Negro
-    "J": (0, 38, 100),  # Azul marino
-    "K": (104, 69, 13),  # Marrón
-    "L": (78, 84, 87),  # Gris oscuro
+    "Z": (255, 255, 255),  # Blanco  
+    "A": (213, 43, 30),    # Rojo
+    "B": (0, 133, 66),     # Verde
+    "C": (0, 101, 189),    # Azul
+    "D": (240, 171, 0),    # Amarillo
+    "F": (215, 31, 133),   # Rosa
+    "G": (117, 48, 119),   # Púrpura
+    "H": (255, 88, 0),     # Naranja
+    "I": (249, 227, 0),    # Amarillo claro
+    "J": (0, 0, 0),        # Negro
+    "P": (0, 38, 100),     # Azul marino
+    "Q": (104, 69, 13),    # Marrón
     "M": (198, 191, 110),  # Beige
+    "L": (78, 84, 87),     # Gris oscuro
     "N": (178, 175, 175),  # Gris claro
-    "O": (135, 135, 135),  # Gris medio
-    "P": (0, 161, 222),  # Celeste
-    "Q": (127, 127, 126),  # Gris
-    "R": (56, 142, 60),  # Verde oscuro
-    "S": (255, 234, 200),  # Crema
-    "T": (165, 42, 42),  # Marrón rojizo
-    "U": (75, 0, 130),  # Índigo
-    "V": (255, 20, 147),  # Rosa fuerte
-    "W": (0, 128, 128),  # Verde azulado
-    "X": (128, 0, 128),  # Magenta
-    "Y": (255, 215, 0),  # Dorado
-    "Z": (47, 79, 79),  # Gris verde
+    "S": (0, 161, 222),    # Celeste
+    "T": (127, 127, 126),  # Gris
+    "R": (56, 142, 60),    # Verde oscuro
+    "V": (255, 234, 200),  # Crema
 }
 
+# Color por defecto para letras no definidas
+COLOR_DEFAULT = (128, 128, 128)  # Gris medio
 
-def calculate_optimal_font_size(text, image_width, max_font_size=None):
-    """Calcular el tamaño óptimo de fuente basado en la longitud del texto"""
-    text_length = len(text.replace("\n", "").replace(" ", ""))
-
-    # Tamaño base proporcional al ancho de la imagen
-    base_size = image_width // 6
-
-    if max_font_size:
-        base_size = min(base_size, max_font_size)
-
-    # Ajustar según la longitud del texto
-    if text_length <= 5:
-        return int(base_size * 1.2)  # Texto corto - fuente más grande
-    elif text_length <= 10:
-        return int(base_size * 1.0)  # Texto medio - fuente normal
-    elif text_length <= 15:
-        return int(base_size * 0.8)  # Texto largo - fuente más pequeña
-    elif text_length <= 20:
-        return int(base_size * 0.65)  # Texto muy largo
-    else:
-        return int(base_size * 0.5)  # Texto extremadamente largo
+def get_color_for_letter(letra):
+    """Obtener color para una letra, incluyendo soporte para colores personalizados"""
+    letra = letra.upper()
+    
+    # Verificar colores personalizados primero
+    if hasattr(st, 'session_state') and 'custom_colors' in st.session_state:
+        if letra in st.session_state.custom_colors:
+            return st.session_state.custom_colors[letra]
+    
+    # Luego verificar colores predefinidos
+    return COLORES.get(letra, COLOR_DEFAULT)
 
 
-def format_text_to_two_lines(text):
-    """Formatear texto para tener máximo 2 líneas, dividiendo por espacios inteligentemente"""
-    words = text.split()
-
-    if len(words) <= 1:
-        return text
-
-    total_chars = sum(len(word) for word in words) + len(words) - 1
-    target_chars_per_line = total_chars / 2
-
-    current_line = ""
-    current_chars = 0
-
-    for i, word in enumerate(words[:-1]):
-        if current_chars + len(word) <= target_chars_per_line:
-            current_line += word + " "
-            current_chars += len(word) + 1
-        else:
-            return current_line.strip() + "\n" + " ".join(words[i:])
-
-    return words[0] + "\n" + " ".join(words[1:])
 
 
-def create_default_font(size):
-    """Crear una fuente por defecto si la fuente personalizada no está disponible"""
+
+
+def create_font(size):
+    """Crear fuente usando Ubuntu-Bold.ttf o fuente por defecto"""
     try:
-        return ImageFont.truetype("arial.ttf", size)
+        # Intentar usar la fuente Ubuntu-Bold.ttf del directorio actual
+        return ImageFont.truetype("Ubuntu-Bold.ttf", size)
     except:
-        return ImageFont.load_default()
+        try:
+            # Intentar fuente del sistema
+            return ImageFont.truetype("arial.ttf", size)
+        except:
+            # Fuente por defecto como último recurso
+            return ImageFont.load_default()
 
 
 def mm_to_pixels(mm, dpi=300):
@@ -123,81 +96,93 @@ def get_dimensions_in_pixels(width, height, unit, dpi=300):
         return width, height  # píxeles
 
 
-def generate_qr_label(localidad, abr, letra, dimensions=(6614, 6850)):
-    """Generar una etiqueta QR con los parámetros dados"""
-
-    # Formatear texto de abreviación si es necesario
-    if " " in abr and len(abr) > 15:
-        abr = format_text_to_two_lines(abr)
-
-    color = COLORES.get(
-        letra, (0, 0, 0)
-    )  # Por defecto negro si no se encuentra la letra
-
-    # Crear imagen con dimensiones personalizadas
-    img = Image.new("RGB", dimensions, color=color)
-
-    # Calcular tamaño de fuente óptimo
-    font_size = calculate_optimal_font_size(abr, dimensions[0])
-
-    # Crear fuente
-    fnt = create_default_font(font_size)
-
+def generate_qr_label(localidad, abr, letra, dimensions=(800, 1124)):
+    """Generar una etiqueta QR EXACTAMENTE igual al código base original"""
+    
+    # Convertir letra y abr a string como en el código original
+    letra = str(letra)
+    abr = str(abr)
+    
+    # Obtener color exacto del código base (con fallback para colores personalizados)
+    color = get_color_for_letter(letra)
+    
+    # Crear imagen con dimensiones exactas del código original
+    img = Image.new('RGB', dimensions, color=color)
+    
+    # Crear fuentes EXACTAS como el código original
+    fnt = create_font(200)   # Fuente principal (tamaño 200)
+    fnt2 = create_font(180)  # Fuente para letra Y (tamaño 180)
+    fnt3 = create_font(180)  # Fuente adicional (no usada en este contexto)
+    
     d = ImageDraw.Draw(img)
-
-    # Generar código QR primero para calcular posiciones
-    qr_size = min(dimensions) // 35  # Tamaño QR proporcional a las dimensiones
+    
+    # REPLICAR EXACTAMENTE la lógica del código original (líneas 33-65)
+    if letra == 'H' or letra == '2' or letra == '1':
+        # Lógica para H, 2, 1 - texto negro en y=10
+        lines = abr.splitlines()
+        try:
+            w1 = max([fnt.getsize(line)[0] for line in lines]) if lines else fnt.getsize(abr)[0]
+            h1 = fnt.getsize(abr)[1] * len(lines)
+        except AttributeError:
+            # Método moderno si getsize no está disponible
+            w1 = max([d.textbbox((0, 0), line, font=fnt)[2] for line in lines]) if lines else d.textbbox((0, 0), abr, font=fnt)[2]
+            h1 = d.textbbox((0, 0), abr, font=fnt)[3] * len(lines)
+        
+        x1, y1 = img.size
+        x1 /= 2
+        x1 -= w1 / 2
+        y1 /= 2
+        y1 -= h1 / 2
+        d.text((x1, 10), abr, font=fnt, fill=(0, 0, 0))  # Negro
+        
+    elif letra == 'Y':
+        # Lógica para Y - fuente 180, texto blanco en y=10
+        lines = abr.splitlines()
+        try:
+            w1 = max([fnt2.getsize(line)[0] for line in lines]) if lines else fnt2.getsize(abr)[0]
+            h1 = fnt2.getsize(abr)[1] * len(lines)
+        except AttributeError:
+            w1 = max([d.textbbox((0, 0), line, font=fnt2)[2] for line in lines]) if lines else d.textbbox((0, 0), abr, font=fnt2)[2]
+            h1 = d.textbbox((0, 0), abr, font=fnt2)[3] * len(lines)
+        
+        x1, y1 = img.size
+        x1 /= 2
+        x1 -= w1 / 2
+        y1 /= 2
+        y1 -= h1 / 2
+        d.text((x1, 10), abr, font=fnt2, fill=(255, 255, 255))  # Blanco
+        
+    else:
+        # Lógica para el resto de letras - fuente 200, texto blanco en y=60
+        lines = abr.splitlines()
+        try:
+            w1 = max([fnt.getsize(line)[0] for line in lines]) if lines else fnt.getsize(abr)[0]
+            h1 = fnt.getsize(abr)[1] * len(lines)
+        except AttributeError:
+            w1 = max([d.textbbox((0, 0), line, font=fnt)[2] for line in lines]) if lines else d.textbbox((0, 0), abr, font=fnt)[2]
+            h1 = d.textbbox((0, 0), abr, font=fnt)[3] * len(lines)
+        
+        x1, y1 = img.size
+        x1 /= 2
+        x1 -= w1 / 2
+        y1 /= 2
+        y1 -= h1 / 2
+        d.text((x1, 60), abr, font=fnt, fill=(255, 255, 255))  # Blanco
+    
+    # Generar QR EXACTAMENTE como el código original
     qr_big = qrcode.QRCode(
-        error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=qr_size, border=1
+        error_correction=qrcode.constants.ERROR_CORRECT_H, 
+        box_size=25, 
+        border=2
     )
     qr_big.add_data(localidad)
     qr_big.make(fit=True)
-    img_qr_big = qr_big.make_image().convert("RGB")
-
-    # Posicionar código QR en el centro vertical de la imagen
-    qr_x = (img.size[0] - img_qr_big.size[0]) // 2
-    qr_y = (img.size[1] - img_qr_big.size[1]) // 2
-
-    # Calcular posición del texto ENCIMA del QR
-    lines = abr.splitlines()
-
-    # Calcular dimensiones del texto
-    try:
-        line_height = d.textbbox((0, 0), "Ag", font=fnt)[
-            3
-        ]  # Usar caracteres con ascendentes y descendentes
-    except AttributeError:
-        line_height = fnt.getsize("Ag")[1]
-
-    total_text_height = line_height * len(lines)
-
-    # Posicionar texto encima del QR con espacio
-    text_spacing = int(dimensions[1] * 0.03)  # 3% de la altura como espacio
-    text_start_y = qr_y - total_text_height - text_spacing
-
-    # Asegurar que el texto no se salga por arriba
-    if text_start_y < int(dimensions[1] * 0.05):  # Margen mínimo del 5%
-        text_start_y = int(dimensions[1] * 0.05)
-
-    # Dibujar cada línea del texto
-    for i, line in enumerate(lines):
-        try:
-            line_width = d.textbbox((0, 0), line, font=fnt)[2]
-        except AttributeError:
-            line_width, _ = fnt.getsize(line)
-
-        x_pos = (img.size[0] - line_width) // 2
-        y_pos = text_start_y + i * line_height
-
-        # Dibujar texto con sombra para mejor legibilidad
-        # Sombra
-        d.text((x_pos + 2, y_pos + 2), line, font=fnt, fill=(0, 0, 0, 128))
-        # Texto principal
-        d.text((x_pos, y_pos), line, font=fnt, fill=(255, 255, 255))
-
-    # Pegar el código QR
-    img.paste(img_qr_big, (qr_x, qr_y))
-
+    img_qr_big = qr_big.make_image().convert('RGB')
+    
+    # Posición EXACTA como el código original (línea 72-73)
+    pos2 = ((img.size[0] - img_qr_big.size[0]) // 2, 370)
+    img.paste(img_qr_big, pos2)
+    
     return img
 
 
@@ -209,16 +194,27 @@ def create_color_preview(color_rgb):
 
 def create_color_cell(letter):
     """Crear celda con color de fondo para la tabla"""
-    if letter in COLORES:
-        color_rgb = COLORES[letter]
+    # Obtener color (predefinido o personalizado)
+    color_rgb = get_color_for_letter(letter)
+    
+    if color_rgb:
         color_hex = f"#{color_rgb[0]:02x}{color_rgb[1]:02x}{color_rgb[2]:02x}"
         # Calcular si necesitamos texto blanco o negro basado en el brillo del color
         brightness = (
             color_rgb[0] * 299 + color_rgb[1] * 587 + color_rgb[2] * 114
         ) / 1000
         text_color = "white" if brightness < 128 else "black"
-        return f'<div style="background-color: {color_hex}; color: {text_color}; padding: 5px; text-align: center; border-radius: 3px; font-weight: bold;">{letter}</div>'
-    return letter
+        
+        # Agregar indicador si es color personalizado
+        is_custom = (hasattr(st, 'session_state') and 
+                    'custom_colors' in st.session_state and 
+                    letter.upper() in st.session_state.custom_colors)
+        
+        suffix = " ✨" if is_custom else ""
+        
+        return f'<div style="background-color: {color_hex}; color: {text_color}; padding: 5px; text-align: center; border-radius: 3px; font-weight: bold;">{letter}{suffix}</div>'
+    
+    return f'<div style="background-color: #808080; color: white; padding: 5px; text-align: center; border-radius: 3px; font-weight: bold;">{letter}</div>'
 
 
 def main():
@@ -248,100 +244,91 @@ def main():
         
         **Paso 2:** ✏️ Revisa y edita los datos en la tabla
         
-        **Paso 3:** ⚙️ Configura las dimensiones de tu etiqueta
-        
-        **Paso 4:** 📥 Genera y descarga tus PDFs
+        **Paso 3:** 📥 Genera y descarga tus etiquetas QR
         
         ---
         
         ### 📊 Formato del archivo Excel
         Tu archivo debe tener exactamente estas columnas:
-        - **Localidad**: Datos para el código QR
-        - **Abr**: Texto que aparecerá en la etiqueta
-        - **Letra**: Código de color (A-Z)
+        - **Localidad**: Datos para el código QR (ej: A02-01-01-01)
+        - **Abr**: Texto que aparecerá en la etiqueta (ej: A02-01)
+        - **Letra**: Código de color (A-Z, ver colores abajo)
         
-        💡 **Tip**: El tamaño de la fuente se ajusta automáticamente según la longitud del texto
+        🎯 **Formato Idéntico**: Esta app replica EXACTAMENTE el formato del código base original
         """
         )
 
         st.divider()
 
-        # Configuración de dimensiones
-        st.header("📏 Configuración de Dimensiones")
-
-        col_unit1, col_unit2 = st.columns(2)
-        with col_unit1:
-            unit = st.selectbox(
-                "Unidad de medida:",
-                ["mm", "cm", "m", "píxeles"],
-                index=0,
-                help="Selecciona la unidad para las dimensiones",
-            )
-
-        with col_unit2:
-            dpi = st.number_input(
-                "DPI:",
-                min_value=72,
-                max_value=600,
-                value=300,
-                step=50,
-                help="Resolución de impresión (dots per inch)",
-            )
-
-        col_dim1, col_dim2 = st.columns(2)
-        with col_dim1:
-            if unit == "mm":
-                width = st.number_input(
-                    "Ancho (mm):", min_value=10, max_value=500, value=210, step=5
-                )
-            elif unit == "cm":
-                width = st.number_input(
-                    "Ancho (cm):", min_value=1, max_value=50, value=21, step=1
-                )
-            elif unit == "m":
-                width = st.number_input(
-                    "Ancho (m):", min_value=0.1, max_value=5.0, value=0.21, step=0.01
-                )
-            else:
-                width = st.number_input(
-                    "Ancho (px):", min_value=100, max_value=10000, value=6614, step=100
-                )
-
-        with col_dim2:
-            if unit == "mm":
-                height = st.number_input(
-                    "Alto (mm):", min_value=10, max_value=500, value=297, step=5
-                )
-            elif unit == "cm":
-                height = st.number_input(
-                    "Alto (cm):", min_value=1, max_value=50, value=29.7, step=1
-                )
-            elif unit == "m":
-                height = st.number_input(
-                    "Alto (m):", min_value=0.1, max_value=5.0, value=0.297, step=0.01
-                )
-            else:
-                height = st.number_input(
-                    "Alto (px):", min_value=100, max_value=10000, value=6850, step=100
-                )
-
-        # Convertir dimensiones a píxeles
-        if unit != "píxeles":
-            pixel_width, pixel_height = get_dimensions_in_pixels(
-                width, height, unit, dpi
-            )
-            st.info(f"📐 Dimensiones finales: {pixel_width} x {pixel_height} píxeles")
-        else:
-            pixel_width, pixel_height = int(width), int(height)
+        # Configuración simple - solo formato original
+        st.header("📏 Configuración de Etiquetas")
+        
+        pixel_width, pixel_height = 800, 1124
+        dpi = 600  # DPI del código original
+        
+        st.success(f"✅ Formato original: {pixel_width} x {pixel_height} px (DPI: {dpi})")
+        st.info("📝 Este formato es EXACTAMENTE igual al código base original")
 
         st.divider()
 
-        # Mostrar colores disponibles con vista previa visual
-        st.header("🎨 Colores Disponibles")
-        st.markdown("*Letras ordenadas alfabéticamente*")
+        # Sección de colores mejorada
+        st.header("🎨 Configuración de Colores")
+        
+        # Opción para colores personalizados
+        with st.expander("⚙️ Agregar Color Personalizado", expanded=False):
+            st.markdown("Define un color para una letra que no esté en la lista:")
+            
+            col_custom1, col_custom2 = st.columns(2)
+            with col_custom1:
+                custom_letter = st.text_input(
+                    "Letra:", 
+                    max_chars=1, 
+                    placeholder="Ej: Ñ",
+                    help="Ingresa una sola letra"
+                ).upper()
+            
+            with col_custom2:
+                custom_color = st.color_picker(
+                    "Color:", 
+                    value="#808080",
+                    help="Selecciona el color de fondo"
+                )
+            
+            if custom_letter and st.button("➕ Agregar Color Personalizado"):
+                # Convertir color hex a RGB
+                hex_color = custom_color.lstrip('#')
+                rgb_color = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+                
+                # Agregar al diccionario de colores en sesión
+                if 'custom_colors' not in st.session_state:
+                    st.session_state.custom_colors = {}
+                
+                st.session_state.custom_colors[custom_letter] = rgb_color
+                st.success(f"✅ Color agregado para la letra '{custom_letter}'")
+                st.rerun()
+        
+        # Mostrar colores personalizados si existen
+        if 'custom_colors' in st.session_state and st.session_state.custom_colors:
+            st.subheader("🔧 Colores Personalizados")
+            custom_colors_per_row = 4
+            custom_items = list(st.session_state.custom_colors.items())
+            
+            for i in range(0, len(custom_items), custom_colors_per_row):
+                custom_cols = st.columns(custom_colors_per_row)
+                for j, (letter, color) in enumerate(custom_items[i : i + custom_colors_per_row]):
+                    if j < len(custom_cols):
+                        with custom_cols[j]:
+                            color_preview = create_color_preview(color)
+                            st.markdown(
+                                f"{color_preview}{letter} ✨", unsafe_allow_html=True
+                            )
+        
+        st.subheader("🎨 Colores Predefinidos")
+        st.markdown("*Colores del código base original*")
 
-        # Crear grid de colores (3 columnas para mejor visualización)
-        colors_per_row = 3
+        # Crear grid de colores ordenado alfabéticamente (4 columnas para mejor uso del espacio)
+        colors_per_row = 4
+        # Los colores ya están ordenados alfabéticamente en el diccionario
         color_items = list(COLORES.items())
 
         for i in range(0, len(color_items), colors_per_row):
@@ -351,8 +338,13 @@ def main():
                     with cols[j]:
                         color_preview = create_color_preview(color)
                         st.markdown(
-                            f"{color_preview}**{letter}**", unsafe_allow_html=True
+                            f"{color_preview}{letter}", unsafe_allow_html=True
                         )
+                        
+        # Mostrar color por defecto
+        st.info("📝 **Nota**: Las letras no definidas usarán color gris por defecto")
+        default_preview = create_color_preview(COLOR_DEFAULT)
+        st.markdown(f"{default_preview}Color por defecto para letras no definidas", unsafe_allow_html=True)
 
     # Área de contenido principal
     col1, col2 = st.columns([2, 1])
@@ -411,10 +403,10 @@ def main():
                     help="El texto que se mostrará en la etiqueta (se ajusta automáticamente)",
                     required=True,
                 ),
-                "Letra": st.column_config.SelectboxColumn(
+                "Letra": st.column_config.TextColumn(
                     "🎨 Letra (Color)",
-                    help="La letra que determina el color de fondo (A-Z)",
-                    options=list(COLORES.keys()),
+                    help="La letra que determina el color de fondo (A-Z o personalizada)",
+                    max_chars=1,
                     required=True,
                 ),
             },
@@ -471,6 +463,16 @@ def main():
 
             if len(df_clean) > 5:
                 st.info(f"📝 Mostrando las primeras 5 filas de {len(df_clean)} total")
+                
+            # Mostrar leyenda de iconos
+            st.markdown(
+                """
+                **Leyenda:** 
+                - ✨ = Color personalizado
+                - Sin icono = Color predefinido
+                - Gris = Color por defecto (letra no definida)
+                """
+            )
 
     with col2:
         st.header("👀 Vista Previa y Generar")
@@ -502,7 +504,7 @@ def main():
 
                         # Mostrar información de dimensiones
                         st.info(
-                            f"📐 Dimensiones: {pixel_width} x {pixel_height} px ({width} x {height} {unit})"
+                            f"📐 Dimensiones: {pixel_width} x {pixel_height} px (Formato Original)"
                         )
 
                         # Mostrar información del texto
@@ -519,89 +521,156 @@ def main():
             # Opciones de generación
             st.subheader("📥 Opciones de Descarga")
 
-            # Generación de PDFs individuales
-            if st.button("🚀 Generar Todos los PDFs", type="primary"):
-                if len(df_clean) > 0:
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
+            # Opciones de generación mejoradas
+            col_gen1, col_gen2 = st.columns(2)
+            
+            with col_gen1:
+                if st.button("🚀 Generar Todas las Etiquetas", type="primary"):
+                    if len(df_clean) > 0:
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
 
-                    # Crear directorio temporal para PDFs
-                    with tempfile.TemporaryDirectory() as temp_dir:
-                        pdf_files = []
+                        # Crear directorio temporal para PDFs
+                        with tempfile.TemporaryDirectory() as temp_dir:
+                            pdf_files = []
+                            success_count = 0
 
-                        for idx, row in df_clean.iterrows():
-                            status_text.text(
-                                f"🏷️ Generando etiqueta {idx + 1} de {len(df_clean)}..."
+                            for idx, row in df_clean.iterrows():
+                                status_text.text(
+                                    f"🏷️ Procesando: {row['Abr']} ({idx + 1}/{len(df_clean)})"
+                                )
+                                progress_bar.progress((idx + 1) / len(df_clean))
+
+                                try:
+                                    # Generar imagen
+                                    img = generate_qr_label(
+                                        row["Localidad"],
+                                        row["Abr"],
+                                        row["Letra"],
+                                        (pixel_width, pixel_height),
+                                    )
+
+                                    # Generar nombre de archivo limpio
+                                    safe_filename = str(row['Localidad']).replace('/', '-').replace('\\', '-')
+                                    pdf_path = os.path.join(
+                                        temp_dir, f"{safe_filename}_{idx + 1}.pdf"
+                                    )
+                                    
+                                    # Guardar como PDF con DPI correcto
+                                    img.save(pdf_path, "PDF", resolution=float(dpi))
+                                    pdf_files.append(pdf_path)
+                                    success_count += 1
+
+                                except Exception as e:
+                                    st.error(
+                                        f"❌ Error en etiqueta {idx + 1} ({row['Abr']}): {str(e)}"
+                                    )
+
+                            # Crear archivo ZIP
+                            if pdf_files:
+                                zip_buffer = io.BytesIO()
+                                with zipfile.ZipFile(
+                                    zip_buffer, "w", zipfile.ZIP_DEFLATED
+                                ) as zip_file:
+                                    for pdf_path in pdf_files:
+                                        zip_file.write(pdf_path, os.path.basename(pdf_path))
+
+                                zip_buffer.seek(0)
+
+                                # Ofrecer descarga
+                                st.success(
+                                    f"🎉 ¡{success_count} etiquetas generadas exitosamente!"
+                                )
+                                
+                                # Botón de descarga prominente
+                                st.download_button(
+                                    label=f"📦 Descargar {success_count} Etiquetas (ZIP)",
+                                    data=zip_buffer.getvalue(),
+                                    file_name=f"etiquetas_qr_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
+                                    mime="application/zip",
+                                    use_container_width=True
+                                )
+                            else:
+                                st.error("❌ No se pudo generar ninguna etiqueta")
+
+                            progress_bar.empty()
+                            status_text.empty()
+                            
+            with col_gen2:
+                # Generar etiqueta individual de muestra
+                if st.button("🔍 Generar Etiqueta de Muestra"):
+                    if len(df_clean) > 0:
+                        try:
+                            # Generar primera etiqueta como muestra
+                            sample_img = generate_qr_label(
+                                df_clean.iloc[0]["Localidad"],
+                                df_clean.iloc[0]["Abr"],
+                                df_clean.iloc[0]["Letra"],
+                                (pixel_width, pixel_height),
                             )
-                            progress_bar.progress((idx + 1) / len(df_clean))
-
-                            try:
-                                # Generar imagen
-                                img = generate_qr_label(
-                                    row["Localidad"],
-                                    row["Abr"],
-                                    row["Letra"],
-                                    (pixel_width, pixel_height),
-                                )
-
-                                # Guardar como PDF
-                                pdf_path = os.path.join(
-                                    temp_dir, f"{row['Localidad']}_{idx + 1}.pdf"
-                                )
-                                img.save(pdf_path, "PDF", resolution=float(dpi))
-                                pdf_files.append(pdf_path)
-
-                            except Exception as e:
-                                st.error(
-                                    f"❌ Error generando etiqueta {idx + 1}: {str(e)}"
-                                )
-
-                        # Crear archivo ZIP
-                        if pdf_files:
-                            zip_buffer = io.BytesIO()
-                            with zipfile.ZipFile(
-                                zip_buffer, "w", zipfile.ZIP_DEFLATED
-                            ) as zip_file:
-                                for pdf_path in pdf_files:
-                                    zip_file.write(pdf_path, os.path.basename(pdf_path))
-
-                            zip_buffer.seek(0)
-
-                            # Ofrecer descarga
-                            st.success(
-                                f"🎉 ¡Se generaron {len(pdf_files)} etiquetas PDF!"
-                            )
+                            
+                            # Convertir a PDF en memoria
+                            pdf_buffer = io.BytesIO()
+                            sample_img.save(pdf_buffer, "PDF", resolution=float(dpi))
+                            pdf_buffer.seek(0)
+                            
                             st.download_button(
-                                label="📦 Descargar ZIP con todos los PDFs",
-                                data=zip_buffer.getvalue(),
-                                file_name=f"etiquetas_qr_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
-                                mime="application/zip",
+                                label=f"📥 Descargar Muestra: {df_clean.iloc[0]['Abr']}",
+                                data=pdf_buffer.getvalue(),
+                                file_name=f"muestra_{df_clean.iloc[0]['Localidad']}.pdf",
+                                mime="application/pdf",
+                                use_container_width=True
                             )
-
-                        progress_bar.empty()
-                        status_text.empty()
+                            
+                        except Exception as e:
+                            st.error(f"❌ Error generando muestra: {str(e)}")
         else:
             st.warning(
                 "⚠️ No se encontraron entradas válidas. Por favor agrega datos arriba."
             )
 
-        # Botón de datos de ejemplo
-        if st.button("📄 Cargar Datos de Ejemplo"):
-            sample_data = pd.DataFrame(
-                {
-                    "Localidad": ["LOC001", "LOC002", "LOC003", "LOC004", "LOC005"],
-                    "Abr": [
-                        "Casa",
-                        "Oficina Principal",
-                        "Almacén Norte",
-                        "Sucursal Centro Comercial",
-                        "Depósito",
-                    ],
-                    "Letra": ["A", "B", "C", "D", "E"],
-                }
-            )
-            st.session_state.df_data = sample_data
-            st.rerun()
+        # Botón de datos de ejemplo mejorado
+        st.divider()
+        
+        col_example1, col_example2 = st.columns(2)
+        
+        with col_example1:
+            if st.button("📄 Cargar Datos de Ejemplo", use_container_width=True):
+                # Agregar algunos colores personalizados de ejemplo
+                if 'custom_colors' not in st.session_state:
+                    st.session_state.custom_colors = {}
+                
+                # Agregar algunos colores personalizados de ejemplo
+                st.session_state.custom_colors["Ñ"] = (255, 0, 255)  # Magenta
+                st.session_state.custom_colors["@"] = (0, 255, 127)   # Verde brillante
+                
+                sample_data = pd.DataFrame(
+                    {
+                        "Localidad": ["A02-01-01-01", "B03-02-01-02", "C04-03-02-01", "H05-04-01-03", "Y01-05-03-02"],
+                        "Abr": [
+                            "A02-01",
+                            "B03-02",
+                            "C04-03",
+                            "H05-04",
+                            "Y01-05",
+                        ],
+                        "Letra": ["A", "B", "C", "H", "Y"],  # Incluye letras H e Y para probar formato especial
+                    }
+                )
+                st.session_state.df_data = sample_data
+                st.success("✅ Datos cargados con ejemplos de texto largo, colores personalizados y letras no definidas")
+                st.rerun()
+                
+        with col_example2:
+            if st.button("🔄 Limpiar Todo", use_container_width=True):
+                st.session_state.df_data = pd.DataFrame(
+                    {"Localidad": [""], "Abr": [""], "Letra": ["A"]}
+                )
+                # Limpiar colores personalizados también
+                if 'custom_colors' in st.session_state:
+                    st.session_state.custom_colors = {}
+                st.success("🔄 Datos y colores personalizados limpiados")
+                st.rerun()
 
 
 if __name__ == "__main__":
