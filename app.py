@@ -11,10 +11,10 @@ import os
 # Configuración de página
 st.set_page_config(page_title="Generador de Etiquetas QR", page_icon="🏷️", layout="wide")
 
-# Definición de colores EXACTA del código base original
-# Del codigo_base.py línea 10: colores = {"Z":(255,255,255),"A":(213,43,30),...}
+# Definición de colores EXACTA del código base actualizado
+# Del codigo_base.py línea 21
 COLORES = {
-    "Z": (255, 255, 255),  # Blanco  
+    "Z": (135, 135, 135),  # Gris  
     "A": (213, 43, 30),    # Rojo
     "B": (0, 133, 66),     # Verde
     "C": (0, 101, 189),    # Azul
@@ -32,6 +32,10 @@ COLORES = {
     "S": (0, 161, 222),    # Celeste
     "T": (127, 127, 126),  # Gris
     "R": (56, 142, 60),    # Verde oscuro
+    "R1": (56, 142, 60),   # Verde oscuro
+    "R2": (56, 142, 60),   # Verde oscuro
+    "R3": (56, 142, 60),   # Verde oscuro
+    "R4": (56, 142, 60),   # Verde oscuro
     "V": (255, 234, 200),  # Crema
 }
 
@@ -96,91 +100,122 @@ def get_dimensions_in_pixels(width, height, unit, dpi=300):
         return width, height  # píxeles
 
 
-def generate_qr_label(localidad, abr, letra, dimensions=(800, 1124)):
-    """Generar una etiqueta QR EXACTAMENTE igual al código base original"""
+def format_text_to_two_lines(text):
+    """Formatea el texto para que tenga como máximo 2 líneas, dividiendo por espacios de manera inteligente"""
+    words = text.split()
+    
+    if len(words) <= 1:
+        return text
+    
+    # Calculamos la longitud total y la dividimos para hacer dos líneas de longitud similar
+    total_chars = sum(len(word) for word in words) + len(words) - 1
+    target_chars_per_line = total_chars / 2
+    
+    current_line = ""
+    current_chars = 0
+    
+    for i, word in enumerate(words[:-1]):
+        if current_chars + len(word) <= target_chars_per_line:
+            current_line += word + " "
+            current_chars += len(word) + 1
+        else:
+            return current_line.strip() + "\n" + " ".join(words[i:])
+    
+    return words[0] + "\n" + " ".join(words[1:])
+
+def generate_qr_label(localidad, abr, letra, dimensions=(6614, 6850)):
+    """Generar una etiqueta QR EXACTAMENTE igual al código base actualizado"""
     
     # Convertir letra y abr a string como en el código original
     letra = str(letra)
     abr = str(abr)
     
+    # Formatear el texto a máximo 2 líneas si tiene espacios
+    if " " in abr:
+        abr = format_text_to_two_lines(abr)
+    
     # Obtener color exacto del código base (con fallback para colores personalizados)
     color = get_color_for_letter(letra)
     
-    # Crear imagen con dimensiones exactas del código original
+    # Crear imagen con dimensiones exactas del código actualizado
     img = Image.new('RGB', dimensions, color=color)
     
-    # Crear fuentes EXACTAS como el código original
-    fnt = create_font(200)   # Fuente principal (tamaño 200)
-    fnt2 = create_font(180)  # Fuente para letra Y (tamaño 180)
-    fnt3 = create_font(180)  # Fuente adicional (no usada en este contexto)
+    # Crear fuentes según el código actualizado
+    fnt = create_font(1500)   # Fuente principal
+    fnt2 = create_font(1250)  # Para R
+    fnt3 = create_font(1000)  # Para R1
+    fnt4 = create_font(850)   # Para R2
+    fnt5 = create_font(650)   # Para R3
+    fnt6 = create_font(450)   # Para R4
     
     d = ImageDraw.Draw(img)
     
-    # REPLICAR EXACTAMENTE la lógica del código original (líneas 33-65)
-    if letra == 'H' or letra == '2' or letra == '1':
-        # Lógica para H, 2, 1 - texto negro en y=10
-        lines = abr.splitlines()
-        try:
-            w1 = max([fnt.getsize(line)[0] for line in lines]) if lines else fnt.getsize(abr)[0]
-            h1 = fnt.getsize(abr)[1] * len(lines)
-        except AttributeError:
-            # Método moderno si getsize no está disponible
-            w1 = max([d.textbbox((0, 0), line, font=fnt)[2] for line in lines]) if lines else d.textbbox((0, 0), abr, font=fnt)[2]
-            h1 = d.textbbox((0, 0), abr, font=fnt)[3] * len(lines)
-        
-        x1, y1 = img.size
-        x1 /= 2
-        x1 -= w1 / 2
-        y1 /= 2
-        y1 -= h1 / 2
-        d.text((x1, 10), abr, font=fnt, fill=(0, 0, 0))  # Negro
-        
-    elif letra == 'Y':
-        # Lógica para Y - fuente 180, texto blanco en y=10
-        lines = abr.splitlines()
-        try:
-            w1 = max([fnt2.getsize(line)[0] for line in lines]) if lines else fnt2.getsize(abr)[0]
-            h1 = fnt2.getsize(abr)[1] * len(lines)
-        except AttributeError:
-            w1 = max([d.textbbox((0, 0), line, font=fnt2)[2] for line in lines]) if lines else d.textbbox((0, 0), abr, font=fnt2)[2]
-            h1 = d.textbbox((0, 0), abr, font=fnt2)[3] * len(lines)
-        
-        x1, y1 = img.size
-        x1 /= 2
-        x1 -= w1 / 2
-        y1 /= 2
-        y1 -= h1 / 2
-        d.text((x1, 10), abr, font=fnt2, fill=(255, 255, 255))  # Blanco
-        
+    # Determinar fuente y posición Y según la letra
+    if letra == 'R':
+        fnt = fnt2
+        y = 500
+    elif letra == 'R1':
+        fnt = fnt3
+        y = 500
+    elif letra == 'R2':
+        fnt = fnt4
+        y = 500
+    elif letra == 'R3':
+        fnt = fnt5
+        y = 500
+    elif letra == 'R4':
+        fnt = fnt6
+        y = 500
     else:
-        # Lógica para el resto de letras - fuente 200, texto blanco en y=60
-        lines = abr.splitlines()
-        try:
-            w1 = max([fnt.getsize(line)[0] for line in lines]) if lines else fnt.getsize(abr)[0]
-            h1 = fnt.getsize(abr)[1] * len(lines)
-        except AttributeError:
-            w1 = max([d.textbbox((0, 0), line, font=fnt)[2] for line in lines]) if lines else d.textbbox((0, 0), abr, font=fnt)[2]
-            h1 = d.textbbox((0, 0), abr, font=fnt)[3] * len(lines)
-        
-        x1, y1 = img.size
-        x1 /= 2
-        x1 -= w1 / 2
-        y1 /= 2
-        y1 -= h1 / 2
-        d.text((x1, 60), abr, font=fnt, fill=(255, 255, 255))  # Blanco
+        fnt = fnt
+        y = 10
     
-    # Generar QR EXACTAMENTE como el código original
+    lines = abr.splitlines()
+    
+    # Calcular dimensiones del texto
+    try:
+        # Nuevo método para medir el ancho del texto más largo
+        w1 = d.textbbox((0, 0), max(lines, key=len), font=fnt)[2]
+    except AttributeError:
+        # Método alternativo para versiones antiguas
+        w1 = fnt.getsize(max(lines, key=len))[0]
+    
+    try:
+        # Nuevo método para calcular la altura total del texto
+        line_height = d.textbbox((0, 0), "A", font=fnt)[3]
+        total_height = line_height * len(lines)
+    except AttributeError:
+        # Método alternativo para versiones antiguas
+        line_height = fnt.getsize("A")[1]
+        total_height = line_height * len(lines)
+    
+    # Dibujar cada línea individualmente
+    y_start = y
+    
+    for i, line in enumerate(lines):
+        try:
+            line_width = d.textbbox((0, 0), line, font=fnt)[2]
+        except AttributeError:
+            line_width = fnt.getsize(line)[0]
+        
+        # Centrar horizontalmente cada línea
+        x_pos = (img.size[0] - line_width) // 2
+        y_pos = y_start + i * line_height
+        
+        d.text((x_pos, y_pos), line, font=fnt, fill=(255, 255, 255))
+    
+    # Generar código QR con configuración actualizada
     qr_big = qrcode.QRCode(
         error_correction=qrcode.constants.ERROR_CORRECT_H, 
-        box_size=25, 
-        border=2
+        box_size=180, 
+        border=1
     )
     qr_big.add_data(localidad)
     qr_big.make(fit=True)
     img_qr_big = qr_big.make_image().convert('RGB')
     
-    # Posición EXACTA como el código original (línea 72-73)
-    pos2 = ((img.size[0] - img_qr_big.size[0]) // 2, 370)
+    # Posicionar el código QR
+    pos2 = ((img.size[0] - img_qr_big.size[0]) // 2, (img.size[1] - img_qr_big.size[1]) // 2 + 600)
     img.paste(img_qr_big, pos2)
     
     return img
@@ -254,7 +289,7 @@ def main():
         - **Abr**: Texto que aparecerá en la etiqueta (ej: A02-01)
         - **Letra**: Código de color (A-Z, ver colores abajo)
         
-        🎯 **Formato Idéntico**: Esta app replica EXACTAMENTE el formato del código base original
+        🎯 **Formato Actualizado**: Esta app genera etiquetas grandes (6614x6850 px) con múltiples tamaños de fuente
         """
         )
 
@@ -263,11 +298,11 @@ def main():
         # Configuración simple - solo formato original
         st.header("📏 Configuración de Etiquetas")
         
-        pixel_width, pixel_height = 800, 1124
+        pixel_width, pixel_height = 6614, 6850
         dpi = 600  # DPI del código original
         
-        st.success(f"✅ Formato original: {pixel_width} x {pixel_height} px (DPI: {dpi})")
-        st.info("📝 Este formato es EXACTAMENTE igual al código base original")
+        st.success(f"✅ Formato actualizado: {pixel_width} x {pixel_height} px (DPI: {dpi})")
+        st.info("📝 Formato exacto del código base actualizado con etiquetas grandes")
 
         st.divider()
 
@@ -504,7 +539,7 @@ def main():
 
                         # Mostrar información de dimensiones
                         st.info(
-                            f"📐 Dimensiones: {pixel_width} x {pixel_height} px (Formato Original)"
+                            f"📐 Dimensiones: {pixel_width} x {pixel_height} px (Formato Grande)"
                         )
 
                         # Mostrar información del texto
@@ -646,15 +681,16 @@ def main():
                 
                 sample_data = pd.DataFrame(
                     {
-                        "Localidad": ["A02-01-01-01", "B03-02-01-02", "C04-03-02-01", "H05-04-01-03", "Y01-05-03-02"],
+                        "Localidad": ["A02-01-01-01", "B03-02-01-02", "C04-03-02-01", "R05-04-01-03", "R1-06-02-04", "R2-07-03-05"],
                         "Abr": [
                             "A02-01",
                             "B03-02",
-                            "C04-03",
-                            "H05-04",
-                            "Y01-05",
+                            "Almacén Central",
+                            "Deposito Sur",
+                            "Oficina Principal Norte",
+                            "Zona de Carga",
                         ],
-                        "Letra": ["A", "B", "C", "H", "Y"],  # Incluye letras H e Y para probar formato especial
+                        "Letra": ["A", "B", "C", "R", "R1", "R2"],  # Incluye letras R especiales
                     }
                 )
                 st.session_state.df_data = sample_data
