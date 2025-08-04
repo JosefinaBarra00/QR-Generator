@@ -166,6 +166,9 @@ def generate_qr_label(localidad, abr, letra, dimensions=(6614, 6850)):
     elif letra == 'R4':
         fnt = fnt6
         y = 500
+    elif abr.startswith('RETPLA'):
+        fnt = fnt
+        y = 100  # Aumentar margen superior para textos que comienzan con RETPLA
     else:
         fnt = fnt
         y = 10
