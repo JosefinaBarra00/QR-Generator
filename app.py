@@ -168,6 +168,7 @@ def generate_qr_label(localidad, abr, letra, dimensions=(6614, 6850)):
         y = 500
     elif abr.startswith('RETPLA'):
         fnt = fnt2
+        y = 500
     else:
         fnt = fnt
         y = 10
