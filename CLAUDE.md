@@ -15,9 +15,17 @@ This is a **QR Label Generator** built with Streamlit that creates customized QR
 - **Export System**: Creates individual PDF files and packages them in ZIP archives for download
 
 ### Color System
-- **Predefined Colors**: 26 colors mapped to letters A-Z (`COLORES` dictionary in `app.py:15-42`)
+- **Predefined Colors**: 27 colors mapped to letters A-Z + Ñ (`COLORES` dictionary in `app.py:18-46`)
+- **Custom Colors (Session)**: Users can add temporary colors during their session via UI
+- **Custom Colors (Permanent)**: Add to `DEFAULT_CUSTOM_COLORS` dictionary in `app.py:53-56` for persistence
 - **Color Application**: Each label gets a background color based on the "Letra" field
 - **Visual Preview**: Color swatches displayed in UI for user reference
+
+**Adding Permanent Colors:**
+To add colors that persist for all users in Streamlit Cloud:
+1. Edit `app.py` line 53-56 (`DEFAULT_CUSTOM_COLORS` dictionary)
+2. Add entry: `"LETTER": (R, G, B),  # Color name`
+3. Commit and push to repository - Streamlit Cloud will auto-deploy
 
 ### Text Formatting System
 - **Auto Font Sizing**: Dynamic font size calculation based on text length and image dimensions (`calculate_optimal_font_size()` in `app.py:45-65`)
